@@ -30,27 +30,17 @@ export const useSend = () => {
   const { analytics } = useAnalytics();
 
   const clearChatUploadFileList = useFileStore((s) => s.clearChatUploadFileList);
-
+  const fileList = fileChatSelectors.chatUploadFileList(useFileStore.getState());
   const isUploadingFiles = useFileStore(fileChatSelectors.isUploadingFiles);
   const isSendButtonDisabledByMessage = useChatStore(chatSelectors.isSendButtonDisabledByMessage);
 
-  const canSend = !isEmpty && !isUploadingFiles && !isSendButtonDisabledByMessage;
+  const canSend =
+    (!isEmpty || fileList.length > 0) && !isUploadingFiles && !isSendButtonDisabledByMessage;
 
   const send = (params: UseSendMessageParams = {}) => {
+    if (!canSend) return;
     const store = useChatStore.getState();
     if (chatSelectors.isAIGenerating(store)) return;
-
-    // if uploading file or send button is disabled by message, then we should not send the message
-    const isUploadingFiles = fileChatSelectors.isUploadingFiles(useFileStore.getState());
-    const isSendButtonDisabledByMessage = chatSelectors.isSendButtonDisabledByMessage(
-      useChatStore.getState(),
-    );
-
-    const canSend = !isUploadingFiles && !isSendButtonDisabledByMessage;
-    if (!canSend) return;
-
-    const fileList = fileChatSelectors.chatUploadFileList(useFileStore.getState());
-
     const inputMessage = String(
       editorRef.current?.getDocument('markdown') || '',
     ).trimEnd() as unknown as string;
