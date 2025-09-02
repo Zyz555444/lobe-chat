@@ -44,7 +44,6 @@ import {
 
 export interface QueryMessageParams {
   current?: number;
-  groupId?: string | null;
   pageSize?: number;
   sessionId?: string | null;
   topicId?: string | null;
@@ -61,7 +60,7 @@ export class MessageModel {
 
   // **************** Query *************** //
   query = async (
-    { current = 0, pageSize = 1000, sessionId, topicId, groupId }: QueryMessageParams = {},
+    { current = 0, pageSize = 1000, sessionId, topicId }: QueryMessageParams = {},
     options: {
       postProcessUrl?: (path: string | null, file: { fileType: string }) => Promise<string>;
     } = {},
@@ -89,11 +88,6 @@ export class MessageModel {
         topicId: messages.topicId,
         parentId: messages.parentId,
         threadId: messages.threadId,
-
-        // Group chat fields
-        groupId: messages.groupId,
-        agentId: messages.agentId,
-        targetId: messages.targetId,
 
         tools: messages.tools,
         tool_call_id: messagePlugins.toolCallId,
@@ -125,7 +119,6 @@ export class MessageModel {
           eq(messages.userId, this.userId),
           this.matchSession(sessionId),
           this.matchTopic(topicId),
-          this.matchGroup(groupId),
         ),
       )
       .leftJoin(messagePlugins, eq(messagePlugins.id, messages.id))
@@ -134,9 +127,6 @@ export class MessageModel {
       .orderBy(asc(messages.createdAt))
       .limit(pageSize)
       .offset(offset);
-
-    console.log('input', { current, groupId, sessionId, topicId });
-    console.log('result', result);
 
     const messageIds = result.map((message) => message.id as string);
 
@@ -238,10 +228,10 @@ export class MessageModel {
             translate,
             tts: ttsId
               ? {
-                contentMd5: ttsContentMd5,
-                file: ttsFile,
-                voice: ttsVoice,
-              }
+                  contentMd5: ttsContentMd5,
+                  file: ttsFile,
+                  voice: ttsVoice,
+                }
               : undefined,
           },
           fileList: fileList
@@ -683,7 +673,7 @@ export class MessageModel {
       .delete(messageQueries)
       .where(and(eq(messageQueries.id, id), eq(messageQueries.userId, this.userId)));
 
-  deleteMessagesBySession = async (sessionId?: string | null, topicId?: string | null, groupId?: string | null) =>
+  deleteMessagesBySession = async (sessionId?: string | null, topicId?: string | null) =>
     this.db
       .delete(messages)
       .where(
@@ -691,7 +681,6 @@ export class MessageModel {
           eq(messages.userId, this.userId),
           this.matchSession(sessionId),
           this.matchTopic(topicId),
-          this.matchGroup(groupId),
         ),
       );
 
@@ -708,7 +697,4 @@ export class MessageModel {
 
   private matchTopic = (topicId?: string | null) =>
     topicId ? eq(messages.topicId, topicId) : isNull(messages.topicId);
-
-  private matchGroup = (groupId?: string | null) =>
-    groupId ? eq(messages.groupId, groupId) : isNull(messages.groupId);
 }
